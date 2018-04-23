@@ -5,51 +5,36 @@ from mcstatus import MinecraftServer
 import json
 import boto3
 import os
-import subprocess
 import socket
 
 S3_TERRAFORM_PLAN_BUCKET = os.environ.get('S3_TERRAFORM_PLAN_BUCKET')
 S3_TERRAFORM_STATE_BUCKET = os.environ.get('S3_TERRAFORM_STATE_BUCKET')
+EC2 = boto3.client('ec2')
+
+
+def find_instance():
+    # Find name Minecraft
+    instance = None
+    instances = EC2.describe_instances(
+        Filters=[{
+            'Name': 'tag:Name',
+            'Values': ['Minecraft']
+        }]
+    )
+    if len(instances['Reservations'][0]['Instances']) == 1:
+        instance = instances['Reservations'][0]['Instances'][0]
+    return instance
 
 
 def lambda_handler_status(event, context):
-    s3 = boto3.resource('s3')
-
-    # Elastic IP
-    files = [
-        'terraform.tfvars',
-    ]
-    for filename in files:
-        file = s3.Object(S3_TERRAFORM_PLAN_BUCKET, filename)
-        file.download_file('/tmp/' + filename)
-
-    # Non-Elastic IP
-    files = [
-        'terraform.tfstate',
-    ]
-    for filename in files:
-        file = s3.Object(S3_TERRAFORM_STATE_BUCKET, filename)
-        file.download_file('/tmp/' + filename)
+    print("Handling request")
+    instance = find_instance()
 
     ip = None
     try:
-        with open('/tmp/terraform.tfvars') as file:
-            tfvars = json.load(file)
-            tfvars_ok = True
-            ip = tfvars['ip']['value']
+        ip = instance['PublicIpAddress']
     except Exception as exc:
-        try:
-            with open('/tmp/terraform.tfstate') as file:
-                tfstate = json.load(file)
-                tfstate_ok = True
-                ip = tfstate['modules'][0]['resources']['aws_instance.minecraft']['primary']['attributes']['public_ip']
-        except Exception as exc:
-            if not (tfvars_ok and tfstate_ok):
-                return {
-                    'statusCode': 500,
-                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': """{"status": "Internal Server Error (bad tfvars)"}"""
-                }
+        pass
 
     status = {'status': 'offline'}
     if not ip:

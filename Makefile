@@ -1,15 +1,10 @@
 
-.PHONY: all clean terraform-bundle spigot lambda update plan info
+.PHONY: all clean spigot init lambda update plan info
 
 all: update
 
 clean:
 	@echo Just run git clean -xdfn then git clean -xdf
-
-terraform-bundle:
-	go get github.com/hashicorp/terraform
-	go install github.com/hashicorp/terraform/tools/terraform-bundle
-	cd terraform && $(shell go env GOPATH)/bin/terraform-bundle package -os=linux -arch=amd64 terraform-bundle.hcl
 
 spigot:
 	@echo This may take a 5-10 minutes
@@ -29,11 +24,12 @@ core/lambda_status.zip: core/lambda_status/lambda_status.py core/lambda_status/r
 
 update: lambda
 	cd core && terraform apply
-	cd core && terraform output -json > ../instance/terraform.tfvars
-	cd instance && aws s3 sync --delete . s3://$(shell cat core/terraform.tfvars | python -c 'import sys,json;print(json.load(sys.stdin)[sys.argv[1]])' aws_s3_terraform_plan)
 
 plan: lambda
 	cd core && terraform plan
+
+init:
+	cd core && terraform init
 
 info:
 	cd core && terraform output

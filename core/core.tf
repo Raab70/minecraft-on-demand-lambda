@@ -22,15 +22,6 @@ resource "aws_dynamodb_table" "minecraft_terraform_dynamodb" {
   }
 }
 
-resource "aws_s3_bucket" "minecraft_terraform_plan" {
-  bucket = "${var.aws_s3_terraform_plan}"
-  acl    = "private"
-
-  versioning {
-    enabled = true
-  }
-}
-
 resource "aws_s3_bucket" "minecraft_terraform_state" {
   bucket = "${var.aws_s3_terraform_state}"
   acl    = "private"
@@ -556,7 +547,6 @@ resource "aws_lambda_function" "minecraft_lambda_deploy" {
     variables = {
       DISCORD_CLIENT_TOKEN      = "${var.discord_client_token}"
       DISCORD_CHANNEL           = "${var.discord_channel}"
-      S3_TERRAFORM_PLAN_BUCKET  = "${var.aws_s3_terraform_plan}"
       S3_TERRAFORM_STATE_BUCKET = "${var.aws_s3_terraform_state}"
     }
   }
@@ -588,7 +578,6 @@ resource "aws_lambda_function" "minecraft_lambda_destroy" {
     variables = {
       DISCORD_CLIENT_TOKEN      = "${var.discord_client_token}"
       DISCORD_CHANNEL           = "${var.discord_channel}"
-      S3_TERRAFORM_PLAN_BUCKET  = "${var.aws_s3_terraform_plan}"
       S3_TERRAFORM_STATE_BUCKET = "${var.aws_s3_terraform_state}"
     }
   }
@@ -617,7 +606,6 @@ resource "aws_lambda_function" "minecraft_lambda_status" {
 
   environment {
     variables = {
-      S3_TERRAFORM_PLAN_BUCKET  = "${var.aws_s3_terraform_plan}"
       S3_TERRAFORM_STATE_BUCKET = "${var.aws_s3_terraform_state}"
     }
   }
@@ -668,7 +656,19 @@ resource "aws_iam_role_policy" "minecraft_provision_policy" {
       ],
       "Effect": "Allow",
       "Resource": "*"
-    }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogStreams"
+    ],
+      "Resource": [
+        "arn:aws:logs:*:*:*"
+    ]
+  }
   ]
 }
 EOF
@@ -731,10 +731,6 @@ output "aws_dynamodb_terraform_lock" {
 
 output "aws_s3_terraform_state" {
   value = "${aws_s3_bucket.minecraft_terraform_state.id}"
-}
-
-output "aws_s3_terraform_plan" {
-  value = "${aws_s3_bucket.minecraft_terraform_plan.id}"
 }
 
 output "aws_s3_world_backup" {

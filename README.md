@@ -1,16 +1,24 @@
 # minecraft-on-demand-lambda
 
-Turnkey solution for on-demand pushbutton minecraft servers
+Turnkey solution for on-demand pushbutton minecraft server
 
-Forked from [aqemery/Terraform-deploy-minecraft](https://github.com/aqemery/Terraform-deploy-minecraft)
+Forked from [d10n/minecraft-on-demand-lambda](https://github.com/d10n/minecraft-on-demand-lambda)
+Changes:
+* destroy and deploy no longer run terraform from a lambda which is clunky. They
+use the boto3 APIs to simply stop the server instance. This has the advantage
+of being simpler and more reliable (I had issues with running terraform w/in
+lambda). However it does cost slightly more as the EBS volume is not destroyed.
+* Because of the first change the status is now read directly from the instance
+status instead of inferred from terraform.
+* Discord now optional. The discord send message would not work for me
+so it will now work even if discord bot integration fails.
 
 ## Features
 
- * Creates a URL that deploys the server
+ * Creates an API URL that deploys the server
  * Auto shutoff after 30 minutes
  * Backup every 5 minutes
- * Costs about $0.30/mo with light usage. Add a static Elastic IP for about $4/mo. (see notes at bottom)
-
+ * Costs about $0.30/mo with light usage. (From d10n, not confirmed)
 
 ## Instructions
 
@@ -28,20 +36,12 @@ Requirements:
     * The s3 buckets and dynamodb tables will be created with the supplied names; you don't need to create them manually
  * Edit the backend variables at the top of instance/instance.tf
 
-Initial setup:
+### Initial setup
 
-    make
-
-Spigot setup (optional):
-
-    make spigot # if you prefer spigot to vanilla minecraft
-
-To update after making changes:
-
-    make
-
-Spigot is used if a spigot jar file is detected in the minecraft world backup s3 bucket.
-
+1. Copy `core/terraform.tfvars.example` to `core/terraform.tfvars`
+1. Fill in `core/terraform.tfvars`, for more help see the [Variables](#Variables) section.
+1. `make` will build the lambdas and deploy everything, also creating your minecraft server instance immediately.
+1. Spigot setup (optional): `make spigot` # if you prefer spigot to vanilla minecraft
 
 ## Variables
 
@@ -84,20 +84,14 @@ For dynamodb and s3 names, any value is fine as long as it hasn't been used by a
  * `core/lambda_destroy_deploy/lambda_destroy_deploy.py` is the code for the Lambda destroy and deploy functions
  * `core/lambda_status/lambda_status.py` is the code for the Lambda status function
  * `core/lambda_status/requirements.txt` lists the dependencies to be installed for `lambda_status.py`
+ * `core/instance.tf` configures all of the on-demand AWS resources, including the Minecraft EC2 server and its VPC
 
  * `web/index_src.html` is the template for `web/index.html`. The core deployment plugs in the deploy and status URLs.
  * `web/index.html` is a basic web page with a button to deploy the Minecraft server
 
- * `instance` is the configuration that the core uses to deploy and destroy the Minecraft server
- * `instance/provision_minecraft.sh` is ec2 user data, which runs when the machine starts
- * `instance/variables.tf` tells terraform how to read `instance/terraform.tfvars`
- * `instance/terraform.tfvars` is generated from the output variables of the core terraform deployment
- * `instance/instance.tf` configures all of the on-demand AWS resources, including the Minecraft EC2 server and its VPC
-
- * `terraform/terraform-bundle.hcl` configures terraform-bundle to include provider dependencies used by this repository (not currently used)
-
  * `Makefile` has recipes to run all the required setup commands in the right order
     * `make` deploys or updates the core
+    * `make init` initializes your terraform backend
     * `make plan` runs `terraform plan` after building the lambda function zip file
     * `make info` shows the variable output from the core deployment
     * `make spigot` compiles spigot and uploads it to your s3 world bucket
@@ -108,11 +102,24 @@ For dynamodb and s3 names, any value is fine as long as it hasn't been used by a
 
  * If you need more RAM, set a bigger instance size than t2.micro in instance.tf and increase Xmx and Xms in `provision_minecraft.sh` to be a little below the instance size's total allocated RAM
  * The Lambda functions can have bundled dependencies or they can install dependencies when they run. I don't know which I prefer yet and I have both approaches: the destroy and deploy functions install dependencies at runtime, while the status function bundles its dependencies.
- * Terraform 0.10 splits providers out of the main terraform core, but it's possible to build a self-contained bundle with required providers to bundle it with a Lambda function
- * Elastic IP is a static IP that works across redeploys of the server. Using Elastic IP is convenient to avoid DNS TTL caching, but it costs extra. Enable by uncommenting all blocks containing "eip" references in `core/core.tf` and `instance/instance.tf`.
+ * Elastic IP is a static IP that works across redeploys of the server. Using Elastic IP is convenient to avoid DNS TTL caching, but it costs extra. Enable by uncommenting all blocks containing "eip" references in `core/core.tf` and `core/instance.tf`.
  * Restore from backups using [s3-pit-restore](https://github.com/madisoft/s3-pit-restore)
     * Example:
       ```
       s3-pit-restore --bucket d10n-minecraft-world-backup --dest world-restore --timestamp '2017-10-11 4:30PM EDT'
       aws s3 sync --delete world-restore s3://d10n-minecraft-world-backup
       ```
+
+## TODO
+Improvements and ideas
+* Fix discord integration, add discord commands to start/stop the server.
+This is challenging since discord bots, unlike slack bots, cannot be set to
+hit a webhook and must be listening (of polling). Meaning lambda discord bots
+are not a simple idea and paying to run a nano instance for the discord bot
+nearly defeats the purpose of all the work to make this as cost effective
+as possible. This would be relatively simple with an existing discord bot however.
+* Destroy EBS volume. Then you would need to restore a new one from a snapshot
+at deployment. Seems like a lot of hassle for such a small EBS volume.
+* Restore API endpoint would be a nice addition
+* Route53 alias of s3 bucket for easier access?
+

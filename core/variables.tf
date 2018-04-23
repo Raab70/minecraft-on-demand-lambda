@@ -2,7 +2,6 @@ variable "aws_access_key" {}
 variable "aws_secret_key" {}
 variable "aws_region" {}
 variable "aws_dynamodb_terraform_lock" {}
-variable "aws_s3_terraform_plan" {}
 variable "aws_s3_terraform_state" {}
 variable "aws_s3_world_backup" {}
 variable "aws_s3_server_dashboard" {}

@@ -1,19 +1,3 @@
-data "aws_region" "current" {
-  current = true
-}
-
-terraform {
-  backend "s3" {
-    # bucket = "${var.aws_s3_terraform_state["value"]}"
-    bucket         = "d10n-minecraft-terraform-state"    # terraform.backend: configuration cannot contain interpolations
-    key            = "terraform.tfstate"
-    dynamodb_table = "d10n-minecraft-terraform-dynamodb"
-
-    # region = "${data.aws_region.current.name}"
-    region = "us-east-1"
-  }
-}
-
 resource "aws_vpc" "main" {
   cidr_block         = "10.0.0.0/16"
   enable_dns_support = true
@@ -162,12 +146,11 @@ data "template_file" "provision_minecraft" {
   template = "${file("provision_minecraft.sh")}"
 
   vars = {
-    aws_s3_world_backup = "${var.aws_s3_world_backup["value"]}"
+    aws_s3_world_backup = "${var.aws_s3_world_backup}"
   }
 }
 
 resource "aws_instance" "minecraft" {
-  # ami = "ami-b374d5a5"
   ami                    = "${data.aws_ami.amazon_linux.id}"
   instance_type          = "t2.micro"
   vpc_security_group_ids = ["${aws_security_group.allow_all.id}"]
@@ -179,14 +162,8 @@ resource "aws_instance" "minecraft" {
   depends_on = ["aws_internet_gateway.gw"]
   subnet_id  = "${aws_subnet.main.id}"
 
-  # depends_on = [
-  #   "aws_s3_bucket.minecraft_terraform_plan",
-  #   "aws_s3_bucket.minecraft_world_backup"]
-  key_name = "${var.aws_key_pair["value"]}" # "${aws_key_pair.terraform_minecraft.id}"
+  key_name = "${aws_key_pair.aws_minecraft_ssh_key.id}" # "${aws_key_pair.terraform_minecraft.id}"
 
-  # provisioner "local-exec" {
-  #   command = "echo ${aws_instance.minecraft.public_ip} > ip_address.txt"
-  # }
   iam_instance_profile = "${aws_iam_instance_profile.minecraft_s3.id}"
 
   user_data = "${data.template_file.provision_minecraft.rendered}"

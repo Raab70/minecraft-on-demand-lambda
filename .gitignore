@@ -4,7 +4,7 @@
 /core/lambda_status.zip
 /core/terraform.tfstate
 /core/terraform.tfstate.backup
-/instance/terraform.tfvars
+/core/terraform.tfvars
 /spigot-build/
 /spigot-bin/
 .terraform/

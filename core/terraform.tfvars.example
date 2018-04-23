@@ -1,13 +1,12 @@
 {
-  "aws_access_key":              "AKzzFAKEzzzzzZZZZFHA",
-  "aws_secret_key":              "QSzzFAKEzzzzzZZZZd3+dfsJKLSDFj4htjhesjsd",
+  "aws_access_key":              "XXXXXXXXXXXXXXXXX",
+  "aws_secret_key":              "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
   "aws_region":                  "us-east-1",
-  "aws_dynamodb_terraform_lock": "d10n-minecraft-terraform-dynamodb",
-  "aws_s3_terraform_plan":       "d10n-minecraft-terraform-plan",
-  "aws_s3_terraform_state":      "d10n-minecraft-terraform-state",
-  "aws_s3_world_backup":         "d10n-minecraft-world-backup",
-  "aws_s3_server_dashboard":     "d10n-minecraft-dashboard",
-  "discord_client_token":        "xxxxxxxxxxxxxxxxxxxxxxxx.xxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "discord_channel":             "133713371337133713",
+  "aws_dynamodb_terraform_lock": "raab70-minecraft-terraform-dynamodb",
+  "aws_s3_terraform_state":      "raab70-minecraft-terraform-state",
+  "aws_s3_world_backup":         "raab70-minecraft-world-backup",
+  "aws_s3_server_dashboard":     "raab70-minecraft-dashboard",
+  "discord_client_token":        "XXXXXXXXXXXXXXXXX.XXXX.XXXXXXXXXXXXXXXXX",
+  "discord_channel":             "123456789123456789",
   "ssh_minecraft_public_key":     "~/.ssh/id_minecraft.pub"
 }
