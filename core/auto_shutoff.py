@@ -21,8 +21,8 @@ try:
 except socket.error as exc:
     started = False
 
-if os.path.exists('/tmp/last_activity'):
-    f = open('/tmp/last_activity', 'r+')
+if os.path.exists('/minecraft/last_activity'):
+    f = open('/minecraft/last_activity', 'r+')
 
     if started and status.players.online:
         f.seek(0)
@@ -38,5 +38,5 @@ if os.path.exists('/tmp/last_activity'):
             req = requests.delete('${lambda_destroy_url}')
 else:
     if started:
-        f = open('/tmp/last_activity', 'w')
+        f = open('/minecraft/last_activity', 'w')
         f.write(str(time.time()))

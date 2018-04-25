@@ -28,12 +28,12 @@ EOF
     aws s3 sync /minecraft/ s3://${aws_s3_world_backup}
 fi
 
-{ crontab -l; echo "*/5 * * * * aws s3 sync /minecraft/ s3://${aws_s3_world_backup}"; } | crontab -
+{ crontab -l; echo "*/15 * * * * aws s3 sync /minecraft/ s3://${aws_s3_world_backup}"; } | crontab -
 { crontab -l; echo "*/5 * * * * python /minecraft/auto_shutoff.py"; } | crontab -
 
 tmux new-session -d -s minecraft -n minecraft
 tmux send-keys -t minecraft:minecraft "while true; do java -Xmx900M -Xms900M -jar $server_jar nogui; sleep 5; done" C-m
 # Reset the active time at start so that server doesn't kill itself right after starting.
-python -c "import time;f = open('/tmp/last_activity', 'w');f.write(str(time.time()));f.close()"
+python -c "import time;f = open('/minecraft/last_activity', 'w');f.write(str(time.time()));f.close()"
 DROP_PRIVILEGES_EOF
 
